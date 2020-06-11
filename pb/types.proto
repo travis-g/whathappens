@@ -1,0 +1,29 @@
+syntax = "proto3";
+package main;
+
+import "google/protobuf/timestamp.proto";
+
+enum Event {
+	UNDEFINED = 0;
+	START = 1;
+	STOP = 2;
+}
+
+enum Phase {
+	DEFAULT = 0;
+	BLOCKED = 1;
+	DNS = 2;
+	CONNECT = 3;
+	SSL = 4;
+	SEND = 5;
+	WAIT = 6;
+	RECEIVE = 7;
+	DONE = 8;
+}
+
+message PhaseEvent {
+	google.protobuf.Timestamp ts = 1;
+	Event event = 2;
+	Phase phase = 3;
+	// map<string, string> data = 4;
+}
