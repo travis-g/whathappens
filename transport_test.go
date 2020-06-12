@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	// Reduce log verbosity when running tests
+	// Reduce log verbosity
 	Config.SetLevel(zap.WarnLevel)
 }
 
