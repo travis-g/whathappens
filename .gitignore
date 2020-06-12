@@ -1,4 +1,14 @@
 whathappens
+!cmd/whathappens
 *.exe
 
-TODO.md
+TODO
+debug
+coverage.out
+.vscode
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*

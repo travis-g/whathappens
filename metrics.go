@@ -1,4 +1,4 @@
-package main
+package whathappens
 
 import (
 	"github.com/armon/go-metrics"

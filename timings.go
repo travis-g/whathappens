@@ -1,4 +1,4 @@
-package main
+package whathappens
 
 // Timings is a HTTP Archive (HAR) 1.2 compatible object describing time elapsed
 // during various phases of a request-response round trip. All times are

@@ -1,28 +1,12 @@
-package main
+package whathappens
 
 import (
-	"errors"
-	"fmt"
-	"net/http"
-	"net/http/httptrace"
-	"os"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
-
-// ErrNotImplemented is an error returned when planned functionality is not yet
-// implemented.
-var ErrNotImplemented = errors.New("not yet implemented")
-
-// ElapsedSince returns the time since a start time in a floating-point number
-// of milliseconds.
-func ElapsedSince(start time.Time) float32 {
-	now := time.Now()
-	return float32(now.Sub(start).Nanoseconds()) / float32(time.Millisecond)
-}
 
 type ConfigProperties struct {
 	logger  *zap.Logger
@@ -80,32 +64,11 @@ func (c *ConfigProperties) SetLevel(level zapcore.Level) {
 	c.zapCfg.Level.SetLevel(level)
 }
 
-func init() {
-	Config = DefaultConfig()
+// SyncLogger syncs the underlying logger.
+func (c *ConfigProperties) SyncLogger() {
+	c.logger.Sync()
 }
 
-func main() {
-	// Sync log
-	defer Config.logger.Sync()
-	if len(os.Args) != 2 {
-		fmt.Println("Usage:", os.Args[0], "URL")
-		return
-	}
-
-	t := NewTransport()
-	req, _ := http.NewRequest("GET", os.Args[1], nil)
-
-	req = req.WithContext(
-		httptrace.WithClientTrace(req.Context(), t.ClientTrace()),
-	)
-
-	client, _ := t.Client()
-	res, err := client.Do(req)
-	if err != nil {
-		Config.Logger().Fatal("error",
-			zap.Error(err),
-		)
-	}
-	_ = res
-	// TODO: do stuff with the response
+func init() {
+	Config = DefaultConfig()
 }
