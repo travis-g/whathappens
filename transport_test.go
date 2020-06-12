@@ -5,7 +5,14 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptrace"
+
+	"go.uber.org/zap"
 )
+
+func init() {
+	// Reduce log verbosity when running tests
+	Config.SetLevel(zap.WarnLevel)
+}
 
 func Example() {
 	req, _ := http.NewRequest("GET", "http://1.1.1.1/", nil)

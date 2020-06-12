@@ -1,8 +1,10 @@
 # whathappens
 
-A library and CLI for figuring out what happens during an HTTP transaction.
+[![GoDoc](https://godoc.org/github.com/travis-g/whathappens?status.svg)][godoc] [![Go Report Card](https://goreportcard.com/badge/github.com/travis-g/whathappens)](https://goreportcard.com/report/github.com/travis-g/whathappens)
 
-whathappens is a wrapper around the `httptrace` Golang library. It can be used to instrument health checks, profile network performance and measure SLIs of a service from a client's perspective.
+A library and CLI for monitoring what happens during an HTTP transaction.
+
+whathappens is a wrapper around the [`httptrace` Golang package][httptrace]. It can be used to instrument health checks, profile network performance and measure SLIs of a service from a client's perspective.
 
 ## Request-Response Phases
 
@@ -16,3 +18,6 @@ whathappens is a wrapper around the `httptrace` Golang library. It can be used t
 |         |   |    |   SSL/TLS NEGOTIATION   |      |    |       |
 +---------+---+----+-------------------------+------+----+-------+
 ```
+
+[godoc]: https://godoc.org/github.com/travis-g/whathappens
+[httptrace]: https://blog.golang.org/http-tracing

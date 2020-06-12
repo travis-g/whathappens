@@ -26,6 +26,7 @@ func ElapsedSince(start time.Time) float32 {
 
 type ConfigProperties struct {
 	logger  *zap.Logger
+	zapCfg  *zap.Config
 	timeout time.Duration
 	mu      sync.Mutex
 }
@@ -50,6 +51,8 @@ func DefaultConfig() *ConfigProperties {
 	cfg.EncoderConfig.MessageKey = "event"
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.StacktraceKey = ""
+
+	config.zapCfg = &cfg
 	logger, err := cfg.Build()
 	if err != nil {
 		panic(err)
@@ -69,6 +72,12 @@ func (c *ConfigProperties) Timeout() time.Duration {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.timeout
+}
+
+func (c *ConfigProperties) SetLevel(level zapcore.Level) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.zapCfg.Level.SetLevel(level)
 }
 
 func init() {

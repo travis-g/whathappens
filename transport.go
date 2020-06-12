@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-uuid"
 	"go.uber.org/zap"
 )
@@ -36,6 +37,7 @@ type Transport struct {
 	tlsStartTime     time.Time
 
 	timings []*Timings
+	labels  []metrics.Label
 
 	mu sync.RWMutex
 }
@@ -50,8 +52,7 @@ type TransportLog struct {
 // ErrNilTransport is returned when a nil Transport is referenced.
 var ErrNilTransport = errors.New("nil transport")
 
-// NewTransport allocates a transport with hooks that will time phases of the
-// request-response lifecycle and assigns it a UUID.
+// NewTransport allocates a transport and assigns it a UUID.
 func NewTransport() (t *Transport) {
 	t = new(Transport)
 	coreBytes, err := uuid.GenerateRandomBytes(10)
@@ -104,6 +105,8 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
 		zap.String("url", req.URL.String()),
+		zap.String("method", req.Method),
+		zap.String("thing", req.RemoteAddr),
 	)
 	t.current = req
 	t.startTime = time.Now()
@@ -123,12 +126,14 @@ func (t *Transport) ClientTrace() *httptrace.ClientTrace {
 		ConnectDone:       t.ConnectDone,
 		GotConn:           t.GotConn,
 
-		WroteHeaderField:     nil,
-		WroteHeaders:         nil,
-		Wait100Continue:      nil,
-		WroteRequest:         nil,
+		// TODO
+		WroteHeaderField: nil,
+		WroteHeaders:     nil,
+		Wait100Continue:  nil,
+		WroteRequest:     nil,
+
 		Got1xxResponse:       t.Got1xxResponse,
-		GotFirstResponseByte: t.GetFirstResponseByte,
+		GotFirstResponseByte: t.GotFirstResponseByte,
 	}
 }
 
@@ -156,13 +161,14 @@ func (t *Transport) DNSStart(info httptrace.DNSStartInfo) {
 }
 
 func (t *Transport) DNSDone(info httptrace.DNSDoneInfo) {
-	// TODO: emit timing metric
+	duration := ElapsedSince(t.dnsStartTime)
 	Config.Logger().Info("DNSDone",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
-		zap.Float32("duration", ElapsedSince(t.dnsStartTime)),
+		zap.Float32("duration", duration),
 		zap.Any("info", info),
 	)
+	Sink.AddSample([]string{"dns"}, duration)
 }
 
 func (t *Transport) TLSHandshakeStart() {
@@ -175,27 +181,32 @@ func (t *Transport) TLSHandshakeStart() {
 }
 
 func (t *Transport) TLSHandshakeDone(state tls.ConnectionState, err error) {
+	duration := ElapsedSince(t.tlsStartTime)
+	defer Sink.AddSample([]string{"tls", "handshake"}, duration)
 	Config.Logger().Info("TLSHandshakeDone",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
-		zap.Float32("duration", ElapsedSince(t.tlsStartTime)),
+		zap.Float32("duration", duration),
 		zap.Error(err),
 	)
 }
 
-func (t *Transport) GetConn(_ string) {
+func (t *Transport) GetConn(hostport string) {
 	t.connStartTime = time.Now()
 	Config.Logger().Info("GetConn",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
+		zap.String("addr", hostport),
 	)
 }
 
 func (t *Transport) GotConn(info httptrace.GotConnInfo) {
+	duration := ElapsedSince(t.connStartTime)
+	defer Sink.AddSample([]string{"connect", "open"}, duration)
 	Config.Logger().Info("GotConn",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
-		zap.Float32("duration", ElapsedSince(t.connStartTime)),
+		zap.Float32("duration", duration),
 		zap.String("addr", info.Conn.RemoteAddr().String()),
 		zap.Bool("reused", info.Reused),
 	)
@@ -213,29 +224,35 @@ func (t *Transport) ConnectStart(network, addr string) {
 }
 
 func (t *Transport) ConnectDone(network, addr string, err error) {
+	duration := ElapsedSince(t.connectStartTime)
+	defer Sink.AddSample([]string{"connect", network}, duration)
 	Config.Logger().Info("ConnectDone",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
-		zap.Float32("duration", ElapsedSince(t.connectStartTime)),
+		zap.Float32("duration", duration),
 		zap.String("network", network),
 		zap.String("addr", addr),
 		zap.Error(err),
 	)
 }
 
-func (t *Transport) GetFirstResponseByte() {
+func (t *Transport) GotFirstResponseByte() {
+	elapsed := ElapsedSince(t.startTime)
+	defer Sink.AddSample([]string{"time_to_first_byte"}, elapsed)
 	Config.Logger().Info("GetFirstResponseByte",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
-		zap.Float32("elapsed", ElapsedSince(t.startTime)),
+		zap.Float32("elapsed", elapsed),
 	)
 }
 
 func (t *Transport) Got1xxResponse(code int, _ textproto.MIMEHeader) error {
+	elapsed := ElapsedSince(t.startTime)
+	defer Sink.AddSample([]string{"1xx_response"}, elapsed)
 	Config.Logger().Info("Got1xxResponse",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
-		zap.Float32("elapsed", ElapsedSince(t.startTime)),
+		zap.Float32("elapsed", elapsed),
 		zap.Int("code", code),
 	)
 	return nil
