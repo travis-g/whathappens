@@ -101,6 +101,10 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		panic(err)
 	}
 	t.currentRequestID = fmt.Sprintf("%s-%x", t.coreID, currentRequestIDBytes)
+
+	httpTransport := new(http.Transport)
+	httpTransport.DisableKeepAlives = true
+
 	Config.Logger().Info("RoundTripStart",
 		zap.String("transport", t.transportID),
 		zap.String("request", t.currentRequestID),
@@ -110,7 +114,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	)
 	t.current = req
 	t.startTime = time.Now()
-	return http.DefaultTransport.RoundTrip(req)
+	return httpTransport.RoundTrip(req)
 }
 
 // ClientTrace returns an httptrace.ClientTrace that performs the given timings

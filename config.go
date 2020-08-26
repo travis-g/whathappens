@@ -9,10 +9,12 @@ import (
 )
 
 type ConfigProperties struct {
-	logger  *zap.Logger
-	zapCfg  *zap.Config
-	timeout time.Duration
-	mu      sync.Mutex
+	logger          *zap.Logger
+	zapCfg          *zap.Config
+	timeout         time.Duration
+	metricsInterval time.Duration
+	retainInterval  time.Duration
+	mu              sync.Mutex
 }
 
 var Config *ConfigProperties
@@ -22,6 +24,8 @@ func DefaultConfig() *ConfigProperties {
 	config := new(ConfigProperties)
 
 	config.timeout = time.Second * 60
+	config.metricsInterval = time.Second * 10
+	config.retainInterval = time.Second * 60
 
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{

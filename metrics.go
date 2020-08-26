@@ -10,10 +10,8 @@ var (
 )
 
 func init() {
-	sink, err := metrics.NewStatsdSink("localhost:8125")
-	if err != nil {
-		panic(err)
-	}
+	var err error
+	sink := metrics.NewInmemSink(Config.metricsInterval, Config.retainInterval)
 	// TODO: allow use of a custom prefix/metrics config
 	Sink, err = metrics.New(metrics.DefaultConfig("whathappens"), sink)
 	if err != nil {
